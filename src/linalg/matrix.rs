@@ -80,16 +80,32 @@ impl Matrix {
         res
     }
 
+    pub fn f_norm(&self) -> f64 {
+        let mut res: f64 = 0.0;
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                res += self.get(i, j).powi(2);
+            }
+        }
+        res.sqrt()
+    }
+
+    /// Calculate an approximation of the inverse of a matrix using newton's method
     pub fn inverse(&self) -> Self {
         assert_eq!(self.rows, self.cols);
         assert_ne!(self.det(), 0.0);
-        let mut res = self.transpose() * (1.0 / (self.col_norm() * self.row_norm()));
-        for i in 0..20 {
-            res = &res * &(Self::identity_matrix(self.rows) * 2.0 - self * &res);
+        let mut res_old = self.transpose() * (1.0 / (self.col_norm() * self.row_norm()));
+        let mut res_new = Self::zeros(self.rows, self.cols);
+        let mut diff = 1.0;
+        while diff > 1e-6 {
+            res_new = &res_old * &(Self::identity_matrix(self.rows) * 2.0 - self * &res_old);
+            diff = (&res_old - &res_new).f_norm() / res_old.f_norm();
+            res_old = res_new.clone();
         }
-        res
+        res_new
     }
 
+    /// Calculate the determinant of a 3x3 matrix
     fn det_3x3(&self) -> f64 {
         self.get(0, 0) * self.get(1, 1) * self.get(2, 2)
             + self.get(0, 1) * self.get(1, 2) * self.get(2, 0)
@@ -99,10 +115,12 @@ impl Matrix {
             - self.get(0, 0) * self.get(1, 2) * self.get(2, 1)
     }
 
+    /// Calculate the determinant of a 2x2 matrix
     fn det_2x2(&self) -> f64 {
         self.get(0, 0) * self.get(1, 1) - self.get(0, 1) * self.get(1, 0)
     }
 
+    /// Calculate the determinant of a matrix
     pub fn det(&self) -> f64 {
         assert_eq!(self.rows, self.cols);
         if self.rows == 2 {
@@ -175,6 +193,26 @@ impl std::ops::Sub for Matrix {
             .map(|(a, b)| a - b)
             .collect();
         Self {
+            data,
+            rows: self.rows,
+            cols: self.cols,
+        }
+    }
+}
+
+impl std::ops::Sub<&Matrix> for &Matrix {
+    type Output = Matrix;
+
+    fn sub(self, rhs: &Matrix) -> Self::Output {
+        assert_eq!(self.rows, rhs.rows);
+        assert_eq!(self.cols, rhs.cols);
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(rhs.data.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+        Matrix {
             data,
             rows: self.rows,
             cols: self.cols,
@@ -297,5 +335,17 @@ impl std::ops::Div<f64> for Matrix {
             rows: self.rows,
             cols: self.cols,
         }
+    }
+}
+
+impl std::fmt::Display for Matrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for i in 0..self.rows {
+            for j in 0..self.cols {
+                write!(f, "{:.5} ", self.get(i, j))?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
