@@ -5,6 +5,9 @@ pub struct Matrix {
     cols: usize,
 }
 
+
+// todo, rank, guassa, solve linear system, eigenvalues, etc.
+
 impl Matrix {
     pub fn new(data: Vec<f64>, rows: usize, cols: usize) -> Self {
         Self { data, rows, cols }
@@ -146,6 +149,9 @@ impl Matrix {
         }
     }
 }
+
+
+// kanske skriva om det här nere, vet inte vad som är standard
 
 impl std::ops::Add for Matrix {
     type Output = Self;
