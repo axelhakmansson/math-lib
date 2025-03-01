@@ -1,15 +1,18 @@
-use crate::derivative::lexer::Token;
+use super::Token;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Node {
     Number(f64),
     Variable(String),
+    Constant(String),
     EConstant,
+
     Add(Box<Node>, Box<Node>),
     Sub(Box<Node>, Box<Node>),
     Mul(Box<Node>, Box<Node>),
     Div(Box<Node>, Box<Node>),
     Pow(Box<Node>, Box<Node>),
+
     Ln(Box<Node>),
     Log(Box<Node>),
     Sin(Box<Node>),
@@ -19,6 +22,7 @@ pub enum Node {
     Arccos(Box<Node>),
     Arctan(Box<Node>),
     Sqrt(Box<Node>),
+
     Neg(Box<Node>),
 }
 
