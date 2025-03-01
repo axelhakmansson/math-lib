@@ -1,0 +1,45 @@
+use crate::derivative::lexer::Token;
+
+#[derive(Clone)]
+pub enum Node {
+    Number(f64),
+    Variable(String),
+    EConstant,
+    Add(Box<Node>, Box<Node>),
+    Sub(Box<Node>, Box<Node>),
+    Mul(Box<Node>, Box<Node>),
+    Div(Box<Node>, Box<Node>),
+    Pow(Box<Node>, Box<Node>),
+    Ln(Box<Node>),
+    Log(Box<Node>),
+    Sin(Box<Node>),
+    Cos(Box<Node>),
+    Tan(Box<Node>),
+    Arcsin(Box<Node>),
+    Arccos(Box<Node>),
+    Arctan(Box<Node>),
+    Sqrt(Box<Node>),
+    Neg(Box<Node>),
+}
+
+#[derive(Clone)]
+pub enum NodeToken {
+    Token(Token),
+    Node(Node),
+}
+
+impl NodeToken {
+    pub fn node(&self) -> Option<Node> {
+        match self {
+            NodeToken::Node(node) => Some(node.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn token(&self) -> Option<Token> {
+        match self {
+            NodeToken::Token(token) => Some(token.clone()),
+            _ => None,
+        }
+    }
+}

@@ -1,4 +1,5 @@
-enum Token {
+#[derive(Clone)]
+pub enum Token {
     Number(f64),
     Add,
     Sub,
@@ -101,24 +102,4 @@ pub fn tokenize(input: String, variable: String) -> Vec<Token> { // t.ex. sin(x^
         }
     }
     tokens
-}
-
-
-pub fn check_paren(tokens: &Vec<Token>) -> Result<(), String> {
-    let mut count = 0;
-    for token in tokens {
-        match token {
-            Token::LParen => count += 1,
-            Token::RParen => count -= 1,
-            _ => continue,
-        }
-        if count < 0 {
-            return Err("Unbalanced parentheses".to_string());
-        }
-    }
-    if count == 0 {
-        Ok(())
-    } else {
-        Err("Unbalanced parentheses".to_string())
-    }
 }
