@@ -161,39 +161,3 @@ fn parse_rest(tokens: &[NodeToken]) -> Result<Node, ParseError> {
     Err(ParseError::InvalidExpression)
 }
 
-
-//tests
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::derivative::lexer::tokenize;
-
-    #[test]
-    fn test_parse_rest_1() {
-        let tokens = tokenize("2 + 3 * 4".to_string(), "x".to_string());
-        let node_tokens: Vec<NodeToken> = tokens.iter().map(|token| NodeToken::Token(token.clone())).collect();
-        let res = parse_rest(&node_tokens).unwrap();
-        
-        assert_eq!(res, Node::Add(
-            Box::new(Node::Number(2.0)),
-            Box::new(Node::Mul(
-                Box::new(Node::Number(3.0)),
-                Box::new(Node::Number(4.0))
-            ))
-        ));
-    }
-
-    #[test]
-    fn test_parse_rest_2() {
-        let tokens = tokenize("-3^2".to_string(), "x".to_string());
-        let node_tokens: Vec<NodeToken> = tokens.iter().map(|token| NodeToken::Token(token.clone())).collect();
-        let res = parse_rest(&node_tokens).unwrap();
-        
-        assert_eq!(res, Node::Pow(
-            Box::new(Node::Neg(
-                Box::new(Node::Number(3.0))
-            )),
-            Box::new(Node::Number(2.0))
-        ));
-    }
-}

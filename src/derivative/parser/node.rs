@@ -12,6 +12,7 @@ pub enum Node {
     Mul(Box<Node>, Box<Node>),
     Div(Box<Node>, Box<Node>),
     Pow(Box<Node>, Box<Node>),
+    Neg(Box<Node>),
 
     Ln(Box<Node>),
     Log(Box<Node>),
@@ -21,9 +22,7 @@ pub enum Node {
     Arcsin(Box<Node>),
     Arccos(Box<Node>),
     Arctan(Box<Node>),
-    Sqrt(Box<Node>),
-
-    Neg(Box<Node>),
+    Sqrt(Box<Node>),   
 }
 
 #[derive(Clone)]
