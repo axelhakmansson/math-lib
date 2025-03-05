@@ -25,7 +25,7 @@ pub enum Node {
     Sqrt(Box<Node>),   
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum NodeToken {
     Token(Token),
     Node(Node),

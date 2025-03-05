@@ -1,4 +1,4 @@
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Token {
     Number(f64),
     Add,
@@ -16,13 +16,14 @@ pub enum Token {
     Ln,
     Log,                    // senare, log_a definerar bas annars 10 https://en.wikipedia.org/wiki/Derivative
     Pow,
+    Sqrt,
     Constant(String),
     Variable(String),
     EConstant,
 }
 
 
-pub fn tokenize(input: String, variable: String) -> Vec<Token> { // t.ex. sin(x^2.0)*e^(2.0*x)    viktigt med alla tecken och . vid nummer för parse
+pub fn tokenize(input: String, variable: String) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut chars = input.chars().peekable();
     while let Some(&c) = chars.peek() {

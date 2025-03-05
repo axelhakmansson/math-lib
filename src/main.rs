@@ -1,6 +1,8 @@
-use math_lib::linalg::matrix::Matrix;
+use math_lib::{derivative::lexer::tokenize, derivative::parser::parser::parse_fully};
 
-fn main() {
-    let a = Matrix::new((1..=4).map(|x| x as f64).collect(), 2, 2);
-    println!("{}", a.inverse());
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let tokens = tokenize("arcsin(e^(cos(ln(x^(3^x)))))".to_string(), "x".to_string());
+    let res = parse_fully(&tokens)?;
+    println!("{:?}", res);
+    Ok(())
 }
