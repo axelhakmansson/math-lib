@@ -1,3 +1,20 @@
+use thiserror::Error;
+
+#[derive(Error, Debug, PartialEq)]
+pub enum MatrixError {
+    #[error("Not a square matix, the number of rows and cols are not the same.")]
+    NotSquareMatrix,
+    #[error("Can't invert a matrix with a zero determinant.")]
+    DetZeroForInverse,
+    #[error("Two matrix have different number of rows.")]
+    NotTheSameNmrOfRows,
+    #[error("Two matrix have different number of cols.")]
+    NotTheSameNmrOfCols,
+    #[error("Two matrix have different number of cols and rows for mul.")]
+    ColsNotEqToRows,
+}
+
+
 #[derive(Clone, Debug)]
 pub struct Matrix {
     data: Vec<f64>,
@@ -94,18 +111,19 @@ impl Matrix {
     }
 
     /// Calculate an approximation of the inverse of a matrix using newton's method
-    pub fn inverse(&self) -> Self {
-        assert_eq!(self.rows, self.cols);
-        assert_ne!(self.det(), 0.0);
-        let mut res_old = self.transpose() * (1.0 / (self.col_norm() * self.row_norm()));
+    pub fn inverse(&self) -> Result<Matrix, MatrixError> {
+        if self.rows != self.cols { return Err(MatrixError::NotSquareMatrix) }
+        if self.det()? == 0.0 { return Err(MatrixError::DetZeroForInverse) }
+
+        let mut res_old = self.transpose().matrix_mul_f64(1.0 / (self.col_norm() * self.row_norm()));
         let mut res_new = Self::zeros(self.rows, self.cols);
         let mut diff = 1.0;
         while diff > 1e-6 {
-            res_new = &res_old * &(Self::identity_matrix(self.rows) * 2.0 - self * &res_old);
-            diff = (&res_old - &res_new).f_norm() / res_old.f_norm();
+            res_new = res_old.matrix_mul(&(Self::identity_matrix(self.rows).matrix_mul_f64(2.0).matrix_sub(&self.matrix_mul(&res_old)?))?)?;
+            diff = res_old.matrix_sub(&res_new)?.f_norm() / res_old.f_norm();
             res_old = res_new.clone();
         }
-        res_new
+        Ok(res_new)
     }
 
     /// Calculate the determinant of a 3x3 matrix
@@ -124,12 +142,12 @@ impl Matrix {
     }
 
     /// Calculate the determinant of a matrix
-    pub fn det(&self) -> f64 {
-        assert_eq!(self.rows, self.cols);
+    pub fn det(&self) -> Result<f64, MatrixError> {
+        if self.rows != self.cols { return Err(MatrixError::NotSquareMatrix) }
         if self.rows == 2 {
-            return self.det_2x2();
+            return Ok(self.det_2x2());
         } else if self.rows == 3 {
-            return self.det_3x3();
+            return Ok(self.det_3x3());
         } else {
             let mut res = 0.0;
             for i in 0..self.cols {
@@ -143,185 +161,81 @@ impl Matrix {
                         }
                     }
                 }
-                res += self.get(0, i) * minor.det() * if i % 2 == 0 { 1.0 } else { -1.0 };
+                res += self.get(0, i) * minor.det()? * if i % 2 == 0 { 1.0 } else { -1.0 };
             }
-            res
+            Ok(res)
         }
     }
-}
 
-
-// kanske skriva om det här nere, vet inte vad som är standard
-
-impl std::ops::Add for Matrix {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.rows, rhs.rows);
-        assert_eq!(self.cols, rhs.cols);
+    pub fn matrix_add(&self, rhs: &Matrix) -> Result<Matrix, MatrixError> {
+        if self.rows != rhs.rows { return Err(MatrixError::NotTheSameNmrOfRows) }
+        if self.cols != rhs.cols { return Err(MatrixError::NotTheSameNmrOfCols) }
         let data: Vec<f64> = self
             .data
             .iter()
             .zip(rhs.data.iter())
             .map(|(a, b)| a + b)
             .collect();
-        Self {
+        Ok(Matrix {
             data,
             rows: self.rows,
             cols: self.cols,
-        }
+        })
     }
-}
 
-impl std::ops::Add<f64> for Matrix {
-    type Output = Self;
+    pub fn matrix_sub(&self, rhs: &Matrix) -> Result<Matrix, MatrixError> {
+        if self.rows != rhs.rows { return Err(MatrixError::NotTheSameNmrOfRows) }
+        if self.cols != rhs.cols { return Err(MatrixError::NotTheSameNmrOfCols) }
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(rhs.data.iter())
+            .map(|(a, b)| a - b)
+            .collect();
+        Ok(Matrix {
+            data,
+            rows: self.rows,
+            cols: self.cols,
+        })
+    }
 
-    fn add(self, rhs: f64) -> Self::Output {
+    pub fn matrix_mul(&self, rhs: &Matrix) -> Result<Matrix, MatrixError> {
+        if self.cols != rhs.rows { return Err(MatrixError::ColsNotEqToRows)}
+        let mut res = vec![0.0; self.rows * rhs.cols];
+        for i in 0..self.rows {
+            for j in 0..rhs.cols {
+                for k in 0..self.cols {
+                    res[i * rhs.cols + j] +=
+                        self.data[i * self.cols + k] * rhs.data[k * rhs.cols + j];
+                }
+            }
+        }
+        Ok(Matrix {
+            data: res,
+            rows: self.rows,
+            cols: rhs.cols,
+        })
+    }
+
+    pub fn matrix_add_f64(&self, rhs: f64) -> Matrix {
         let data: Vec<f64> = self.data.iter().map(|a| a + rhs).collect();
-        Self {
-            data,
-            rows: self.rows,
-            cols: self.cols,
-        }
-    }
-}
-
-impl std::ops::Sub for Matrix {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.rows, rhs.rows);
-        assert_eq!(self.cols, rhs.cols);
-        let data: Vec<f64> = self
-            .data
-            .iter()
-            .zip(rhs.data.iter())
-            .map(|(a, b)| a - b)
-            .collect();
-        Self {
-            data,
-            rows: self.rows,
-            cols: self.cols,
-        }
-    }
-}
-
-impl std::ops::Sub<&Matrix> for &Matrix {
-    type Output = Matrix;
-
-    fn sub(self, rhs: &Matrix) -> Self::Output {
-        assert_eq!(self.rows, rhs.rows);
-        assert_eq!(self.cols, rhs.cols);
-        let data: Vec<f64> = self
-            .data
-            .iter()
-            .zip(rhs.data.iter())
-            .map(|(a, b)| a - b)
-            .collect();
         Matrix {
             data,
             rows: self.rows,
             cols: self.cols,
         }
     }
-}
 
-impl std::ops::Sub<f64> for Matrix {
-    type Output = Self;
-
-    fn sub(self, rhs: f64) -> Self::Output {
+    pub fn matrix_sub_f64(&self, rhs: f64) -> Matrix {
         let data: Vec<f64> = self.data.iter().map(|a| a - rhs).collect();
-        Self {
-            data,
-            rows: self.rows,
-            cols: self.cols,
-        }
-    }
-}
-
-impl std::ops::Mul for Matrix {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.cols, rhs.rows);
-        let mut res = vec![0.0; self.rows * rhs.cols];
-        for i in 0..self.rows {
-            for j in 0..rhs.cols {
-                for k in 0..self.cols {
-                    res[i * rhs.cols + j] +=
-                        self.data[i * self.cols + k] * rhs.data[k * rhs.cols + j];
-                }
-            }
-        }
-        Self {
-            data: res,
-            rows: self.rows,
-            cols: rhs.cols,
-        }
-    }
-}
-
-impl std::ops::Mul<&Matrix> for Matrix {
-    type Output = Self;
-
-    fn mul(self, rhs: &Matrix) -> Self::Output {
-        assert_eq!(self.cols, rhs.rows);
-        let mut res = vec![0.0; self.rows * rhs.cols];
-        for i in 0..self.rows {
-            for j in 0..rhs.cols {
-                for k in 0..self.cols {
-                    res[i * rhs.cols + j] +=
-                        self.data[i * self.cols + k] * rhs.data[k * rhs.cols + j];
-                }
-            }
-        }
-        Self {
-            data: res,
-            rows: self.rows,
-            cols: rhs.cols,
-        }
-    }
-}
-
-impl std::ops::Mul<&Matrix> for &Matrix {
-    type Output = Matrix;
-
-    fn mul(self, rhs: &Matrix) -> Self::Output {
-        assert_eq!(self.cols, rhs.rows);
-        let mut res = vec![0.0; self.rows * rhs.cols];
-        for i in 0..self.rows {
-            for j in 0..rhs.cols {
-                for k in 0..self.cols {
-                    res[i * rhs.cols + j] +=
-                        self.data[i * self.cols + k] * rhs.data[k * rhs.cols + j];
-                }
-            }
-        }
         Matrix {
-            data: res,
-            rows: self.rows,
-            cols: rhs.cols,
-        }
-    }
-}
-
-impl std::ops::Mul<f64> for Matrix {
-    type Output = Self;
-
-    fn mul(self, rhs: f64) -> Self::Output {
-        let data: Vec<f64> = self.data.iter().map(|a| a * rhs).collect();
-        Self {
             data,
             rows: self.rows,
             cols: self.cols,
         }
     }
-}
 
-impl std::ops::Mul<f64> for &Matrix {
-    type Output = Matrix;
-
-    fn mul(self, rhs: f64) -> Self::Output {
+    pub fn matrix_mul_f64(&self, rhs: f64) -> Matrix {
         let data: Vec<f64> = self.data.iter().map(|a| a * rhs).collect();
         Matrix {
             data,
@@ -329,19 +243,16 @@ impl std::ops::Mul<f64> for &Matrix {
             cols: self.cols,
         }
     }
-}
 
-impl std::ops::Div<f64> for Matrix {
-    type Output = Self;
-
-    fn div(self, rhs: f64) -> Self::Output {
+    pub fn matrix_div_f64(&self, rhs: f64) -> Matrix {
         let data: Vec<f64> = self.data.iter().map(|a| a / rhs).collect();
-        Self {
+        Matrix {
             data,
             rows: self.rows,
             cols: self.cols,
         }
     }
+
 }
 
 impl std::fmt::Display for Matrix {
